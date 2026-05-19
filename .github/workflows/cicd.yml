@@ -102,15 +102,6 @@ jobs:
       - name: Pull Latest Image
         run: docker pull ${{ secrets.DOCKER_USERNAME }}/todoapp2:latest
 
-      - name: Run DB Migrations
-        # Run prisma migrate deploy inside a one-off container before swapping the app.
-        run: |
-          docker run --rm \
-            --env-file .env.production \
-            -v todoapp2_sqlite_data:/app/data \
-            ${{ secrets.DOCKER_USERNAME }}/todoapp2:latest \
-            npx prisma migrate deploy
-
       # Pull the new image and restart only the app service.
       - name: Deploy app
         run: |
