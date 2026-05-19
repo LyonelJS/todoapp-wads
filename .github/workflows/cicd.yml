@@ -28,8 +28,8 @@ jobs:
 
       - name: Prisma generate
         env:
-          # SQLite — no real DB connection needed for generate
-          DATABASE_URL: file:/tmp/ci.db
+          # Placeholder — generate does not open a real DB connection
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
         run: npx prisma generate
 
       - name: Lint
@@ -62,10 +62,30 @@ jobs:
           cache-to: type=inline
           build-args: |
             NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
-            NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+            NEXTAUTH_URL=https://e2526-wads-b4cc.csbihub.id
+
+  migrate:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run DB migrations against Neon
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate deploy
 
   deploy:
-    needs: build
+    needs: migrate
     runs-on: self-hosted
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -75,15 +95,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create .env.production from GitHub Secrets
-        # Created only on the runner machine at deploy time — never committed to git.
         run: |
           cat > .env.production <<EOF
           NODE_ENV=production
 
-          # SQLite — persisted via Docker volume on the VPS
-          DATABASE_URL=file:/app/data/prod.db
+          # Neon PostgreSQL
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
 
-          # NextAuth — use your assigned domain
+          # NextAuth — assigned domain
           NEXTAUTH_URL=https://e2526-wads-b4cc.csbihub.id
           NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
           AUTH_SECRET=${{ secrets.AUTH_SECRET }}
@@ -99,10 +118,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Pull Latest Image
-        run: docker pull ${{ secrets.DOCKER_USERNAME }}/todoapp2:latest
-
-      # Pull the new image and restart only the app service.
       - name: Deploy app
         run: |
           docker compose pull app

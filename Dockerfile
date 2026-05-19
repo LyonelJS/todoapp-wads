@@ -4,7 +4,6 @@
 FROM node:22-bookworm-slim AS base
 WORKDIR /app
 
-# libsql native client needs ca-certificates; openssl kept for bcryptjs
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
@@ -21,13 +20,11 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Prisma generate does not open a DB connection.
-# SQLite path is irrelevant here; we just need a valid URL shape.
-ENV DATABASE_URL=file:/tmp/build.db
+# Prisma generate does not open a DB connection — placeholder satisfies prisma.config.ts.
+ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
 RUN npx prisma generate
 
 # Build-time public env vars (baked into the JS bundle).
-# Pass these via `docker build --build-arg` or compose `build.args`.
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXTAUTH_URL
 
@@ -49,11 +46,6 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Include prisma CLI + migrations so `migrate deploy` works inside the container
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 USER nextjs
 

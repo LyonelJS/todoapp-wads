@@ -13,10 +13,4 @@ services:
       - .env.production
     ports:
       - "3015:3015"
-    volumes:
-      # Persist the SQLite database across container restarts
-      - sqlite_data:/app/data
     restart: unless-stopped
-
-volumes:
-  sqlite_data:
