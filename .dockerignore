@@ -1,0 +1,30 @@
+# Version control
+.git
+.gitignore
+
+# Local dev & IDE
+.next
+.vercel
+*.tsbuildinfo
+*.log
+.DS_Store
+npm-debug.log*
+
+# Local SQLite database (never bake into image)
+*.db
+*.db-shm
+*.db-wal
+
+# Env files (injected at runtime via compose / CI)
+.env
+.env.*
+!.env.example
+
+# Tests & tooling
+__tests__
+coverage
+jest.config.ts
+jest.setup.ts
+
+# Docs
+README.md

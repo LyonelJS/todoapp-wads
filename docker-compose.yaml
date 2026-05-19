@@ -1,0 +1,22 @@
+name: todoapp2
+
+services:
+  app:
+    image: ${DOCKER_USERNAME:-local}/todoapp2:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://e2526-wads-b4cc.csbihub.id}
+        NEXTAUTH_URL: ${NEXTAUTH_URL:-https://e2526-wads-b4cc.csbihub.id}
+    env_file:
+      - .env.production
+    ports:
+      - "3015:3015"
+    volumes:
+      # Persist the SQLite database across container restarts
+      - sqlite_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
