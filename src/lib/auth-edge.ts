@@ -25,4 +25,5 @@ export const { auth: middlewareAuth } = NextAuth({
     signIn: "/login",
     error: "/login",
   },
+  trustHost: true,
 });
